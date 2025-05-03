@@ -2,7 +2,8 @@ import pandas as pd
 from tabulate import tabulate
 import matplotlib.pyplot as plt
 import seaborn as sns
-from model import MatchPredictorFCNN, evaluate_model, train_model
+import dataHandler
+from model import MatchPredictorFCNN, evaluate_model
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -12,7 +13,8 @@ import numpy as np
 import fbrefdata as fd
 import json
 
-def trainModel(config : dict,  
+
+def train_model(config : dict,  
                 df_fifa: pd.DataFrame,
                 df_lineups: pd.DataFrame,
                 df_matches: pd.DataFrame,
@@ -20,8 +22,29 @@ def trainModel(config : dict,
                 df_teams: pd.DataFrame,
                 df_competitions: pd.DataFrame):
    
-    features = torch.randn(1000, 10)  # 1000 samples, 10 features each
-    labels = torch.randint(0, 3, (1000,))  # Random labels (0, 1, or 2)
+    features = pd.DataFrame()
+    labels = torch.tensor([])
+    i = 0
+    for _, game in df_matches.iterrows():
+        frame = dataHandler.evaluate_two_teams_by_game_id(game['game_id'], df_matches, df_players, df_fifa, df_lineups)
+
+        features = pd.concat([features, frame], ignore_index=True)
+        home_club_goals = game['home_club_goals']
+        away_club_goals = game['away_club_goals']
+
+        if (home_club_goals > away_club_goals):
+            labels.add(0)
+        elif (home_club_goals == away_club_goals):
+            labels.add(1)
+        else:
+            labels.add(2)
+        i += 1
+
+        if  (i > 100):
+            break
+
+    features = features.drop(['team1_game_team_id', 'team2_game_team_id'], axis=1)
+    #labels = torch.randint(0, 3, (1000,))  # Random labels (0, 1, or 2)
 
     # Create DataLoader for training and validation sets
     dataset = TensorDataset(features, labels)

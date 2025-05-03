@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import graphs
 import gui
-from model import MatchPredictorFCNN, evaluate_model, train_model
+#from model import MatchPredictorFCNN, evaluate_model
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -29,7 +29,7 @@ if (config["show_graphs"]):
     graphs.ratingToAge(df_fifa)
 
 if (config["is_training"]):
-    training.train_model(config)
+    training.train_model(config,df_fifa, df_lineups, df_matches, df_players, df_teams, df_competitions)
 
 if (config["is_gui"]):
     gui.loadGUI(df_teams, df_competitions, df_players, None)
