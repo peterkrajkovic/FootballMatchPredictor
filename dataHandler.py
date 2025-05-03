@@ -108,7 +108,7 @@ def evaluate_two_player_dfs(df_players1, df_players2, df_fifa):
 
 
 
-def evaluate_two_teams_by_game_id(game_id):
+def evaluate_two_teams_by_game_id(game_id, df_matches, df_players, df_fifa, df_lineups):
 
   #hra
   df_matches_filtered = df_matches[df_matches['game_id'] == game_id]
