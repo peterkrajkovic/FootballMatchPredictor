@@ -29,7 +29,7 @@ if (config["show_graphs"]):
     graphs.ratingToAge(df_fifa)
 
 if (config["is_training"]):
-    training.train_model(config,df_fifa, df_lineups, df_matches, df_players, df_teams, df_competitions)
+    training.trainModel(config,df_fifa, df_lineups, df_matches, df_players, df_teams, df_competitions)
 
 if (config["is_gui"]):
     gui.loadGUI(df_teams, df_competitions, df_players, None)
