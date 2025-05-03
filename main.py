@@ -32,4 +32,4 @@ if (config["is_training"]):
     training.train_model(config)
 
 if (config["is_gui"]):
-    gui.loadGUI(df_teams, df_competitions, df_players, utils.loadModel())
+    gui.loadGUI(df_teams, df_competitions, df_players, None)

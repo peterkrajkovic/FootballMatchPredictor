@@ -9,7 +9,7 @@ def ratingToAge(df_fifa_csv : DataFrame):
     plt.xlabel("Age")
     plt.ylabel("Overall Rating")
     plt.title("Age vs. Overall Rating")
-    plt.show()
+    plt.show(block=False)
 
 
 def featureCorrelation(df_fifa_csv : DataFrame):
@@ -19,7 +19,7 @@ def featureCorrelation(df_fifa_csv : DataFrame):
     plt.title("Distribution of Player Overall Ratings")
     plt.xlabel("Overall Rating")
     plt.ylabel("Count")
-    plt.show()
+    plt.show(block=False)
 
     plt.figure(figsize=(12,8))
     important_features = ["overall_rating", "potential", "age", "height_cm", "weight_kgs",
@@ -28,4 +28,4 @@ def featureCorrelation(df_fifa_csv : DataFrame):
                         "shot_power", "stamina", "strength", "vision", "composure"]
     sns.heatmap(df_fifa_csv[important_features].corr(), annot=True, cmap="coolwarm", fmt=".2f")
     plt.title("Feature Correlation Heatmap")
-    plt.show()
+    plt.show(block=False)
