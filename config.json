@@ -1,10 +1,11 @@
 {
-    "number_of_epochs": 10,
+    "number_of_epochs": 10000,
     "learning_rate": 0.01,
     "input_size": 16,
     "batch_size": 64,
     "model_path": "model_weights.pth",
     "is_training": true,
     "is_gui": false,
-    "show_graphs": false
+    "show_graphs": false,
+    "best_accuracy": 0.59811
   }

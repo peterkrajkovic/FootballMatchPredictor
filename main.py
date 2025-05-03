@@ -15,7 +15,7 @@ import fbrefdata as fd
 import training
 import utils
 
-df_fifa = pd.read_csv("https://drive.google.com/uc?export=download&id=1Fg06rxyQ-ImEf_CKfOoxZEqAIFIsjvZN")
+df_fifa = pd.read_csv("Data/fifa_players.csv")
 df_lineups = pd.read_csv('Data/game_lineups.csv')
 #transfermarkt
 df_matches = pd.read_csv("Data/games.csv")
@@ -33,3 +33,5 @@ if (config["is_training"]):
 
 if (config["is_gui"]):
     gui.loadGUI(df_teams, df_competitions, df_players, None)
+
+utils.save_config(config)
