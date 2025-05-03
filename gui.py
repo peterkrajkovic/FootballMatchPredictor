@@ -9,7 +9,6 @@ def loadGUI(df_teams: DataFrame, df_competitions: DataFrame, df_players: DataFra
     root.title("Football Match Predictor")
     root.geometry("1200x900")
 
-    team_names = df_teams['name'].unique().tolist()
     league_names = df_competitions['name'].unique().tolist()
 
     selected_counts = {
@@ -33,10 +32,8 @@ def loadGUI(df_teams: DataFrame, df_competitions: DataFrame, df_players: DataFra
 
         if combo == team1_combo:
             target_listboxes = players_team1_listboxes
-            team_key = 'Team1'
         else:
             target_listboxes = players_team2_listboxes
-            team_key = 'Team2'
 
         # Clear all listboxes
         for lb in target_listboxes.values():
@@ -57,10 +54,18 @@ def loadGUI(df_teams: DataFrame, df_competitions: DataFrame, df_players: DataFra
                 target_listboxes['Midfielders'].insert(tk.END, name)
             elif pos in ['Centre-Forward', 'Centre-Attack', 'Winger', 'Attack']:
                 target_listboxes['Forwards'].insert(tk.END, name)
+        populateSubstitutes(target_listboxes)
 
+    def populateSubstitutes(target_listboxes):
         # Populate substitutes with unselected players
-        for name in already_added:
-            target_listboxes['Substitutes'].insert(tk.END, name)
+        selected = get_selected_players(target_listboxes)
+        target_listboxes['Substitutes'].delete(0, tk.END)
+        for category in ['Goalkeepers', 'Defenders', 'Midfielders', 'Forwards']:
+            listbox = target_listboxes[category]
+            for name in listbox.get(0, tk.END):  # Iterate over all names in the listbox
+                if name not in selected:  # If the player is not selected, add them to Substitutes
+                    target_listboxes['Substitutes'].insert(tk.END, name)
+
 
     def get_selected_players(listboxes):
         selected = set()
@@ -74,6 +79,8 @@ def loadGUI(df_teams: DataFrame, df_competitions: DataFrame, df_players: DataFra
         count2 = len(get_selected_players(players_team2_listboxes))
         selected_counts['Team1'].set(f'{count1}/15')
         selected_counts['Team2'].set(f'{count2}/15')
+        populateSubstitutes(players_team1_listboxes)
+        populateSubstitutes(players_team2_listboxes)
 
     def predict_match():
         team1 = team1_combo.get()
