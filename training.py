@@ -64,8 +64,12 @@ def trainModel(config : dict,
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
 
+    bestAccuracy = 0
     for epoch in range(config["number_of_epochs"]):
         train_loss = train_model(model, train_loader, loss_fn, optimizer)
         val_loss, val_accuracy = evaluate_model(model, val_loader, loss_fn)
 
         print(f"Epoch {epoch+1} - Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}, Val Accuracy: {val_accuracy:.4f}")
+        if (val_accuracy > bestAccuracy):
+            torch.save(model.state_dict(), config["model_path"])
+            bestAccuracy = val_accuracy
