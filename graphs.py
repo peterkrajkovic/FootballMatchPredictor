@@ -4,6 +4,7 @@ import seaborn as sns
 
 def ratingToAge(df_fifa_csv : DataFrame):
     sns.set_theme(style="whitegrid")
+    
     plt.figure(figsize=(10,5))
     sns.scatterplot(x=df_fifa_csv["age"], y=df_fifa_csv["overall_rating"], alpha=0.5)
     plt.xlabel("Age")
