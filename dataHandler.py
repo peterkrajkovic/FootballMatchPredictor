@@ -178,3 +178,162 @@ def evaluate_teams(df_teams, df_players, df_fifa):
     extracted_df = final_df[selected_columns]
 
     return extracted_df
+
+def get_team_points(df: pd.DataFrame, game_id) -> tuple[float, float]:
+    """
+    Pre dané game_id vráti (home_points, away_points), kde každá hodnota je
+    normalizované body získané domacim resp. hosťujúcim tímom vo všetkých zápasoch
+    pred daným zápasom v rovnakej súťaži a sezóne, v rozmedzí 0 až 1.
+
+    Normalizácia: actual_points / (3 * number_of_games_played).
+    Body: výhra=3, remíza=1, prehra=0.
+    """
+    df = df.copy()
+    df['date'] = pd.to_datetime(df['date'], dayfirst=True, errors='coerce')
+
+    match = df.loc[df['game_id'] == game_id]
+    if match.empty:
+        raise ValueError(f"No match found with game_id {game_id}")
+    match = match.iloc[0]
+
+    comp   = match['competition_id']
+    season = match['season']
+    date0  = match['date']
+    home   = match['home_club_id']
+    away   = match['away_club_id']
+
+    past = df[
+        (df['competition_id'] == comp) &
+        (df['season']         == season) &
+        (df['date']           <  date0)
+    ]
+
+    def normalized_points_for(team_id) -> float:
+        sub = past[(past['home_club_id'] == team_id) | (past['away_club_id'] == team_id)]
+        pts = 0
+        for _, r in sub.iterrows():
+            if r['home_club_id'] == team_id:
+                gf, ga = r['home_club_goals'], r['away_club_goals']
+            else:
+                gf, ga = r['away_club_goals'], r['home_club_goals']
+            if gf > ga:
+                pts += 3
+            elif gf == ga:
+                pts += 1
+        games_played = len(sub)
+        max_pts = 3 * games_played
+        return pts / max_pts if max_pts > 0 else 0.0
+
+    home_norm = normalized_points_for(home)
+    away_norm = normalized_points_for(away)
+    return home_norm, away_norm
+
+def get_form_points(df: pd.DataFrame,
+                    game_id: str,
+                    form_n: int = 10) -> tuple[float, float]:
+    """
+    Pre dané game_id vráti (home_form_norm, away_form_norm):
+      - home_form_norm = normalizované body domácim tímom v posledných ≤form_n zápasoch
+        (doma aj vonku) pred daným zápasom v rovnakej súťaži a sezóne
+      - away_form_norm = normalizované body hosťujúcim tímom analogicky
+
+    Normalizácia: actual_points / (3 * počet odohraných zápasov).
+    Body: výhra=3, remíza=1, prehra=0.
+    """
+    df = df.copy()
+    df['date'] = pd.to_datetime(df['date'], dayfirst=True, errors='coerce')
+
+    match = df.loc[df['game_id'] == game_id]
+    if match.empty:
+        raise ValueError(f"No match found with game_id {game_id}")
+    match = match.iloc[0]
+
+    comp    = match['competition_id']
+    season  = match['season']
+    date0   = match['date']
+    home_id = match['home_club_id']
+    away_id = match['away_club_id']
+
+    past = df[
+        (df['competition_id'] == comp) &
+        (df['season']         == season) &
+        (df['date']           <  date0)
+    ]
+
+    home_past = (past[(past['home_club_id'] == home_id) | (past['away_club_id'] == home_id)]
+                 .sort_values('date', ascending=False)
+                 .head(form_n))
+    away_past = (past[(past['home_club_id'] == away_id) | (past['away_club_id'] == away_id)]
+                 .sort_values('date', ascending=False)
+                 .head(form_n))
+
+    def normalize(sub: pd.DataFrame, team_id) -> float:
+        pts = 0
+        for _, r in sub.iterrows():
+            if r['home_club_id'] == team_id:
+                gf, ga = r['home_club_goals'], r['away_club_goals']
+            else:
+                gf, ga = r['away_club_goals'], r['home_club_goals']
+            if gf > ga:
+                pts += 3
+            elif gf == ga:
+                pts += 1
+        games = len(sub)
+        max_pts = 3 * games
+        return pts / max_pts if max_pts > 0 else 0.0
+
+    return normalize(home_past, home_id), normalize(away_past, away_id)
+
+def get_result_rate(df: pd.DataFrame, game_id: str) -> tuple[float, float, float, float]:
+    """
+    Pre dané game_id vráti 4 hodnoty:
+      - home_win_rate  = (počet domácich výhier) / (všetky odohrané domáce zápasy pred zápasom)
+      - home_draw_rate = (počet domácich remíz ) / (všetky odohrané domáce zápasy pred zápasom)
+      - away_win_rate  = (počet vonkajších výhier) / (všetky odohrané vonkajších zápasov pred zápasom)
+      - away_draw_rate = (počet vonkajších remíz ) / (všetky odohrané vonkajších zápasov pred zápasom)
+
+    Filtruje len zápasy v rovnakej súťaži (competition_id) a sezóne pred dátumom daného zápasu.
+    Ak tím ešte nemal žiadny taký zápas, vráti 0.0.
+    """
+    df = df.copy()
+    df['date'] = pd.to_datetime(df['date'], dayfirst=True, errors='coerce')
+
+    m = df.loc[df['game_id'] == game_id]
+    if m.empty:
+        raise ValueError(f"No match found with game_id {game_id}")
+    m = m.iloc[0]
+
+    comp    = m['competition_id']
+    season  = m['season']
+    date0   = m['date']
+    home_id = m['home_club_id']
+    away_id = m['away_club_id']
+
+    past = df[
+        (df['competition_id'] == comp) &
+        (df['season']         == season) &
+        (df['date']           <  date0)
+    ]
+
+    home_past  = past[past['home_club_id'] == home_id]
+    home_total = len(home_past)
+
+    home_wins  = (home_past['home_club_goals'] > home_past['away_club_goals']).sum()
+
+    home_draws = (home_past['home_club_goals'] == home_past['away_club_goals']).sum()
+
+    home_win_rate  = home_wins  / home_total if home_total else 0.0
+    home_draw_rate = home_draws / home_total if home_total else 0.0
+
+
+    away_past  = past[past['away_club_id'] == away_id]
+    away_total = len(away_past)
+
+    away_wins  = (away_past['away_club_goals'] > away_past['home_club_goals']).sum()
+
+    away_draws = (away_past['away_club_goals'] == away_past['home_club_goals']).sum()
+
+    away_win_rate  = away_wins  / away_total if away_total else 0.0
+    away_draw_rate = away_draws / away_total if away_total else 0.0
+
+    return home_win_rate, home_draw_rate, away_win_rate, away_draw_rate
