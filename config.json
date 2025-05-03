@@ -4,6 +4,7 @@
     "input_size": 10,
     "batch_size": 64,
     "model_path": "model_weights.pth",
-    "is_training": true,
-    "is_gui": false
+    "is_training": false,
+    "is_gui": false,
+    "show_graphs": true
   }
