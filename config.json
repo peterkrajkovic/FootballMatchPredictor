@@ -1,7 +1,7 @@
 {
     "number_of_epochs": 10000,
     "learning_rate": 0.01,
-    "input_size": 16,
+    "input_size": 24,
     "batch_size": 64,
     "model_path": "model_weights.pth",
     "is_training": true,

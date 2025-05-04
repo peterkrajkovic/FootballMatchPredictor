@@ -54,7 +54,6 @@ def trainModel(config : dict,
         if i > 10000:
             break
 
-    features = features.drop(['team1_game_team_id', 'team2_game_team_id'], axis=1)
     print("Number of features:", features.shape[1])
     features = features.fillna(0)
 
