@@ -1,7 +1,7 @@
 import json
 import torch
 from typing import Dict
-from model import MatchPredictorFCNN  # Adjust import if needed
+from Model.model import MatchPredictorFCNN  # Adjust import if needed
 
 def loadConfig(path: str = "config.json") -> Dict:
     """Loads configuration values from a JSON file."""

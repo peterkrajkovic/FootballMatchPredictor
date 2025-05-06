@@ -29,3 +29,15 @@ def featureCorrelation(df_fifa_csv : DataFrame):
     sns.heatmap(df_fifa_csv[important_features].corr(), annot=True, cmap="coolwarm", fmt=".2f")
     plt.title("Feature Correlation Heatmap")
     plt.show(block=False)
+
+def avgRatingByNationality(df_fifa_csv: DataFrame, top_n: int = 10):
+    top_nations = df_fifa_csv['nationality'].value_counts().head(top_n).index
+    avg_ratings = df_fifa_csv[df_fifa_csv['nationality'].isin(top_nations)] \
+        .groupby('nationality')['overall_rating'].mean().sort_values(ascending=False)
+    
+    plt.figure(figsize=(10, 6))
+    sns.barplot(x=avg_ratings.values, y=avg_ratings.index, palette="viridis")
+    plt.xlabel("Average Rating")
+    plt.ylabel("Nationality")
+    plt.title(f"Top {top_n} Nationalities by Average Overall Rating")
+    plt.show(block=True)

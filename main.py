@@ -4,17 +4,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import graphs
 import gui
-#from model import MatchPredictorFCNN, evaluate_model
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-from torch.utils.data import DataLoader, TensorDataset
-import numpy as np
-import fbrefdata as fd
-import training
+import Model.training as training
 import utils
 
+#datasets
 df_fifa = pd.read_csv("Data/fifa_players.csv")
 df_lineups = pd.read_csv('Data/game_lineups.csv')
 #transfermarkt
@@ -27,6 +20,7 @@ config = utils.loadConfig()
 if (config["show_graphs"]):
     graphs.featureCorrelation(df_fifa)
     graphs.ratingToAge(df_fifa)
+    graphs.avgRatingByNationality(df_fifa)
 
 if (config["is_training"]):
     training.trainModel(config,df_fifa, df_lineups, df_matches, df_players, df_teams, df_competitions)

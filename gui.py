@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from pandas import DataFrame
 import torch
-from model import MatchPredictorFCNN
+from Model.model import MatchPredictorFCNN
 
 def loadGUI(df_teams: DataFrame, df_competitions: DataFrame, df_players: DataFrame, model: MatchPredictorFCNN):
     root = tk.Tk()
@@ -55,16 +55,34 @@ def loadGUI(df_teams: DataFrame, df_competitions: DataFrame, df_players: DataFra
             elif pos in ['Centre-Forward', 'Centre-Attack', 'Winger', 'Attack']:
                 target_listboxes['Forwards'].insert(tk.END, name)
         populateSubstitutes(target_listboxes)
+    def get_all_players_in_team(listboxes):
+        """Returns all players available in the team (from position listboxes)"""
+        all_players = set()
+        for category in ['Goalkeepers', 'Defenders', 'Midfielders', 'Forwards']:
+            listbox = listboxes[category]
+            all_players.update(listbox.get(0, tk.END))
+        return all_players
 
     def populateSubstitutes(target_listboxes):
-        # Populate substitutes with unselected players
-        selected = get_selected_players(target_listboxes)
+        """Populates substitutes with unselected players while preserving current substitute selections"""
+        # Get current substitute selections
+        current_substitutes = set(target_listboxes['Substitutes'].get(i) for i in 
+                                target_listboxes['Substitutes'].curselection())
+        
+        # Get all players and selected players
+        all_players = get_all_players_in_team(target_listboxes)
+        selected_players = get_selected_players(target_listboxes)
+        available_players = all_players - selected_players
+        
+        # Repopulate substitutes
         target_listboxes['Substitutes'].delete(0, tk.END)
-        for category in ['Goalkeepers', 'Defenders', 'Midfielders', 'Forwards']:
-            listbox = target_listboxes[category]
-            for name in listbox.get(0, tk.END):  # Iterate over all names in the listbox
-                if name not in selected:  # If the player is not selected, add them to Substitutes
-                    target_listboxes['Substitutes'].insert(tk.END, name)
+        for player in available_players:
+            target_listboxes['Substitutes'].insert(tk.END, player)
+        
+        # Restore selections if players are still in substitutes
+        for i, player in enumerate(target_listboxes['Substitutes'].get(0, tk.END)):
+            if player in current_substitutes:
+                target_listboxes['Substitutes'].selection_set(i)
 
 
     def get_selected_players(listboxes):
