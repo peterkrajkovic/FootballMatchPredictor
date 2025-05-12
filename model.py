@@ -9,6 +9,8 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 import numpy as np
 import fbrefdata as fd
+import torch_directml
+device = torch_directml.device()
 
 class MatchPredictorFCNN(nn.Module):
     def __init__(self, input_size, hidden_sizes=[256, 128, 64], output_size=3):
@@ -40,14 +42,20 @@ class MatchPredictorFCNN(nn.Module):
 
         x = self.out(x)
         return x
+
+
     
 def train_model(model, train_loader, loss_fn, optimizer):
     model.train()
     losses = []
 
+    model.to(device)
+
     for features, labels in train_loader:
-        features = features.to('cuda')
-        labels = labels.to('cuda')
+        # features = features.to('cuda')
+        # labels = labels.to('cuda')
+        features = features.to(device)
+        labels = labels.to(device)
 
         optimizer.zero_grad()
         output = model(features)
@@ -65,10 +73,14 @@ def evaluate_model(model, val_loader, loss_fn):
     accuracy = 0
     total_samples = 0
 
+    model.to(device)
+
     with torch.no_grad():
         for features, labels in val_loader:
-            features = features.to('cuda')
-            labels = labels.to('cuda')
+            # features = features.to('cuda')
+            # labels = labels.to('cuda')
+            features = features.to(device)
+            labels = labels.to(device)
 
             output = model(features)
             loss = loss_fn(output, labels)

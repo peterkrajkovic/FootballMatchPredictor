@@ -187,153 +187,406 @@ def get_team_points(df: pd.DataFrame, game_id) -> tuple[float, float]:
 
     Normalizácia: actual_points / (3 * number_of_games_played).
     Body: výhra=3, remíza=1, prehra=0.
+    Ak tím nemá žiadne predchádzajúce zápasy, vráti (np.nan, np.nan).
     """
-    df = df.copy()
-    df['date'] = pd.to_datetime(df['date'], dayfirst=True, errors='coerce')
+    df2 = df.copy()
+    for col in ['home_club_id', 'away_club_id', 'home_club_goals', 'away_club_goals']:
+        df2[col] = pd.to_numeric(df2[col], errors='coerce')
+    df2['date'] = pd.to_datetime(df2['date'], dayfirst=True, errors='coerce')
 
-    match = df.loc[df['game_id'] == game_id]
-    if match.empty:
-        raise ValueError(f"No match found with game_id {game_id}")
-    match = match.iloc[0]
+    m0 = df2[df2['game_id'] == game_id]
+    if m0.empty:
+        return np.nan, np.nan
+    m0 = m0.iloc[0]
+    date0 = m0['date']
+    comp, season = m0['competition_id'], m0['season']
+    home_id = m0['home_club_id']
+    away_id = m0['away_club_id']
 
-    comp   = match['competition_id']
-    season = match['season']
-    date0  = match['date']
-    home   = match['home_club_id']
-    away   = match['away_club_id']
+    past = df2[(df2['competition_id'] == comp) &
+               (df2['season'] == season) &
+               (df2['date'] < date0)]
 
-    past = df[
-        (df['competition_id'] == comp) &
-        (df['season']         == season) &
-        (df['date']           <  date0)
-    ]
-
-    def normalized_points_for(team_id) -> float:
+    def norm(team_id: float) -> float:
         sub = past[(past['home_club_id'] == team_id) | (past['away_club_id'] == team_id)]
+        if sub.empty:
+            return np.nan
         pts = 0
+        games = 0
         for _, r in sub.iterrows():
-            if r['home_club_id'] == team_id:
-                gf, ga = r['home_club_goals'], r['away_club_goals']
-            else:
-                gf, ga = r['away_club_goals'], r['home_club_goals']
+            gf = r['home_club_goals'] if r['home_club_id'] == team_id else r['away_club_goals']
+            ga = r['away_club_goals'] if r['home_club_id'] == team_id else r['home_club_goals']
+            if pd.isna(gf) or pd.isna(ga):
+                continue
+            games += 1
             if gf > ga:
                 pts += 3
             elif gf == ga:
                 pts += 1
-        games_played = len(sub)
-        max_pts = 3 * games_played
-        return pts / max_pts if max_pts > 0 else 0.0
+        return pts / (3 * games) if games > 0 else np.nan
 
-    home_norm = normalized_points_for(home)
-    away_norm = normalized_points_for(away)
-    return home_norm, away_norm
+    return norm(home_id), norm(away_id)
 
-def get_form_points(df: pd.DataFrame,
-                    game_id: str,
-                    form_n: int = 10) -> tuple[float, float]:
+
+def get_form_points(df: pd.DataFrame, game_id: str, form_n: int = 10) -> tuple[float, float]:
     """
-    Pre dané game_id vráti (home_form_norm, away_form_norm):
-      - home_form_norm = normalizované body domácim tímom v posledných ≤form_n zápasoch
-        (doma aj vonku) pred daným zápasom v rovnakej súťaži a sezóne
-      - away_form_norm = normalizované body hosťujúcim tímom analogicky
-
-    Normalizácia: actual_points / (3 * počet odohraných zápasov).
-    Body: výhra=3, remíza=1, prehra=0.
+    Pre dané game_id vráti (home_form_norm, away_form_norm) z posledných form_n zápasov.
+    Normalizácia: actual_points / (3 * number_of_games_played).
+    Ak tím nemá žiadne predchádzajúce zápasy, vráti np.nan.
     """
-    df = df.copy()
-    df['date'] = pd.to_datetime(df['date'], dayfirst=True, errors='coerce')
+    df2 = df.copy()
+    for col in ['home_club_id', 'away_club_id', 'home_club_goals', 'away_club_goals']:
+        df2[col] = pd.to_numeric(df2[col], errors='coerce')
+    df2['date'] = pd.to_datetime(df2['date'], dayfirst=True, errors='coerce')
 
-    match = df.loc[df['game_id'] == game_id]
-    if match.empty:
-        raise ValueError(f"No match found with game_id {game_id}")
-    match = match.iloc[0]
+    m0 = df2[df2['game_id'] == game_id]
+    if m0.empty:
+        return np.nan, np.nan
+    m0 = m0.iloc[0]
+    date0 = m0['date']
+    comp, season = m0['competition_id'], m0['season']
+    home_id, away_id = m0['home_club_id'], m0['away_club_id']
 
-    comp    = match['competition_id']
-    season  = match['season']
-    date0   = match['date']
-    home_id = match['home_club_id']
-    away_id = match['away_club_id']
+    past = df2[(df2['competition_id'] == comp) &
+               (df2['season'] == season) &
+               (df2['date'] < date0)]
 
-    past = df[
-        (df['competition_id'] == comp) &
-        (df['season']         == season) &
-        (df['date']           <  date0)
-    ]
+    home_sub = past[(past['home_club_id'] == home_id) | (past['away_club_id'] == home_id)]
+    away_sub = past[(past['home_club_id'] == away_id) | (past['away_club_id'] == away_id)]
+    home_sub = home_sub.sort_values('date', ascending=False).head(form_n)
+    away_sub = away_sub.sort_values('date', ascending=False).head(form_n)
 
-    home_past = (past[(past['home_club_id'] == home_id) | (past['away_club_id'] == home_id)]
-                 .sort_values('date', ascending=False)
-                 .head(form_n))
-    away_past = (past[(past['home_club_id'] == away_id) | (past['away_club_id'] == away_id)]
-                 .sort_values('date', ascending=False)
-                 .head(form_n))
-
-    def normalize(sub: pd.DataFrame, team_id) -> float:
+    def norm(sub, team_id):
+        if sub.empty:
+            return np.nan
         pts = 0
+        games = 0
         for _, r in sub.iterrows():
-            if r['home_club_id'] == team_id:
-                gf, ga = r['home_club_goals'], r['away_club_goals']
-            else:
-                gf, ga = r['away_club_goals'], r['home_club_goals']
+            gf = r['home_club_goals'] if r['home_club_id'] == team_id else r['away_club_goals']
+            ga = r['away_club_goals'] if r['home_club_id'] == team_id else r['home_club_goals']
+            if pd.isna(gf) or pd.isna(ga):
+                continue
+            games += 1
             if gf > ga:
                 pts += 3
             elif gf == ga:
                 pts += 1
-        games = len(sub)
-        max_pts = 3 * games
-        return pts / max_pts if max_pts > 0 else 0.0
+        return pts / (3 * games) if games > 0 else np.nan
 
-    return normalize(home_past, home_id), normalize(away_past, away_id)
+    return norm(home_sub, home_id), norm(away_sub, away_id)
+
 
 def get_result_rate(df: pd.DataFrame, game_id: str) -> tuple[float, float, float, float]:
     """
-    Pre dané game_id vráti 4 hodnoty:
-      - home_win_rate  = (počet domácich výhier) / (všetky odohrané domáce zápasy pred zápasom)
-      - home_draw_rate = (počet domácich remíz ) / (všetky odohrané domáce zápasy pred zápasom)
-      - away_win_rate  = (počet vonkajších výhier) / (všetky odohrané vonkajších zápasov pred zápasom)
-      - away_draw_rate = (počet vonkajších remíz ) / (všetky odohrané vonkajších zápasov pred zápasom)
-
-    Filtruje len zápasy v rovnakej súťaži (competition_id) a sezóne pred dátumom daného zápasu.
-    Ak tím ešte nemal žiadny taký zápas, vráti 0.0.
+    Pre dané game_id vráti win/draw rate pre domáce a vonkajšie zápasy.
+    Ak tím nemá žiadne predchádzajúce zápasy v danej kategórii, vráti np.nan pre príslušné miery.
     """
-    df = df.copy()
-    df['date'] = pd.to_datetime(df['date'], dayfirst=True, errors='coerce')
+    df2 = df.copy()
+    for col in ['home_club_goals', 'away_club_goals', 'home_club_id', 'away_club_id']:
+        df2[col] = pd.to_numeric(df2[col], errors='coerce')
+    df2['date'] = pd.to_datetime(df2['date'], dayfirst=True, errors='coerce')
 
-    m = df.loc[df['game_id'] == game_id]
-    if m.empty:
-        raise ValueError(f"No match found with game_id {game_id}")
-    m = m.iloc[0]
+    m0 = df2[df2['game_id'] == game_id]
+    if m0.empty:
+        return np.nan, np.nan, np.nan, np.nan
+    m0 = m0.iloc[0]
+    comp, season, date0 = m0['competition_id'], m0['season'], m0['date']
+    home_id, away_id = m0['home_club_id'], m0['away_club_id']
 
-    comp    = m['competition_id']
-    season  = m['season']
-    date0   = m['date']
-    home_id = m['home_club_id']
-    away_id = m['away_club_id']
+    past = df2[(df2['competition_id'] == comp) &
+               (df2['season'] == season) &
+               (df2['date'] < date0)]
 
-    past = df[
-        (df['competition_id'] == comp) &
-        (df['season']         == season) &
-        (df['date']           <  date0)
-    ]
+    home_p = past[past['home_club_id'] == home_id].dropna(subset=['home_club_goals','away_club_goals'])
+    away_p = past[past['away_club_id'] == away_id].dropna(subset=['home_club_goals','away_club_goals'])
 
-    home_past  = past[past['home_club_id'] == home_id]
-    home_total = len(home_past)
+    def rate(sub, gf_col, ga_col):
+        total = len(sub)
+        if total == 0:
+            return np.nan, np.nan
+        wins = (sub[gf_col] > sub[ga_col]).sum()
+        draws = (sub[gf_col] == sub[ga_col]).sum()
+        return wins/total, draws/total
 
-    home_wins  = (home_past['home_club_goals'] > home_past['away_club_goals']).sum()
-
-    home_draws = (home_past['home_club_goals'] == home_past['away_club_goals']).sum()
-
-    home_win_rate  = home_wins  / home_total if home_total else 0.0
-    home_draw_rate = home_draws / home_total if home_total else 0.0
+    h_wr, h_dr = rate(home_p, 'home_club_goals', 'away_club_goals')
+    a_wr, a_dr = rate(away_p, 'away_club_goals', 'home_club_goals')
+    return h_wr, h_dr, a_wr, a_dr
 
 
-    away_past  = past[past['away_club_id'] == away_id]
-    away_total = len(away_past)
+def get_mutual_statistic(df: pd.DataFrame, game_id: str) -> tuple[float, float]:
+    """
+    Head-to-head win rate pre oba tímy.
+    Vráti (h2h_home_win_rate, h2h_away_win_rate). Ak vzájomné zápasy neexistujú, vráti (np.nan, np.nan).
+    """
+    df2 = df.copy()
+    for col in ['home_club_goals', 'away_club_goals', 'home_club_id', 'away_club_id']:
+        df2[col] = pd.to_numeric(df2[col], errors='coerce')
+    df2['date'] = pd.to_datetime(df2['date'], dayfirst=True, errors='coerce')
 
-    away_wins  = (away_past['away_club_goals'] > away_past['home_club_goals']).sum()
+    m0 = df2[df2['game_id'] == game_id]
+    if m0.empty:
+        return np.nan, np.nan
+    m0 = m0.iloc[0]
+    comp, season, date0 = m0['competition_id'], m0['season'], m0['date']
+    home_id, away_id = m0['home_club_id'], m0['away_club_id']
 
-    away_draws = (away_past['away_club_goals'] == away_past['home_club_goals']).sum()
+    past = df2[(df2['competition_id'] == comp) &
+               (df2['season'] == season) &
+               (df2['date'] < date0)]
+    mutual = past[((past['home_club_id'] == home_id) & (past['away_club_id'] == away_id)) |
+                  ((past['home_club_id'] == away_id) & (past['away_club_id'] == home_id))]
+    mutual = mutual.dropna(subset=['home_club_goals','away_club_goals'])
 
-    away_win_rate  = away_wins  / away_total if away_total else 0.0
-    away_draw_rate = away_draws / away_total if away_total else 0.0
+    total = len(mutual)
+    if total == 0:
+        return np.nan, np.nan
+    home_wins = ((mutual['home_club_id'] == home_id) & (mutual['home_club_goals'] > mutual['away_club_goals'])).sum() + \
+                ((mutual['away_club_id'] == home_id) & (mutual['away_club_goals'] > mutual['home_club_goals'])).sum()
+    away_wins = ((mutual['home_club_id'] == away_id) & (mutual['home_club_goals'] > mutual['away_club_goals'])).sum() + \
+                ((mutual['away_club_id'] == away_id) & (mutual['away_club_goals'] > mutual['home_club_goals'])).sum()
+    return home_wins / total, away_wins / total
 
-    return home_win_rate, home_draw_rate, away_win_rate, away_draw_rate
+def get_days_rest(df: pd.DataFrame, game_id: str) -> tuple[float, float]:
+    """
+    Pre dané game_id vráti (home_days_rest, away_days_rest), kde každá hodnota je počet dní
+    od predchádzajúceho zápasu domáceho resp. hosťujúceho tímu v rovnakej súťaži a sezóne.
+    Ak tím ešte nemal predchádzajúci zápas, vráti np.nan.
+
+    Parametre:
+    - df: DataFrame obsahujúci stĺpce 'game_id', 'competition_id', 'season', 'date',
+           'home_club_id', 'away_club_id'.
+    - game_id: identifikátor zápasu, pre ktorý počítame rest days.
+    """
+    df2 = df.copy()
+    df2['date'] = pd.to_datetime(df2['date'], dayfirst=True, errors='coerce')
+
+    match = df2[df2['game_id'] == game_id]
+    if match.empty:
+        raise ValueError(f"Game ID {game_id} not found in DataFrame.")
+    m0 = match.iloc[0]
+    date0 = m0['date']
+    comp = m0['competition_id']
+    season = m0['season']
+    home_id = m0['home_club_id']
+    away_id = m0['away_club_id']
+
+    past = df2[(df2['competition_id'] == comp) &
+               (df2['season'] == season) &
+               (df2['date'] < date0)]
+
+    def days_since_last(team_id):
+        team_games = past[(past['home_club_id'] == team_id) | (past['away_club_id'] == team_id)]
+        if team_games.empty:
+            return np.nan
+        last_date = team_games['date'].max()
+        return (date0 - last_date).days
+
+    home_rest = days_since_last(home_id)
+    away_rest = days_since_last(away_id)
+    return home_rest, away_rest
+
+def get_average_goals_scored(df: pd.DataFrame, game_id: str, form_n: int = 5) -> tuple[float, float]:
+    """
+    Pre dané game_id vráti (home_avg_scored, away_avg_scored), kde každá hodnota je
+    priemerný počet strelených gólov na zápas z posledných form_n zápasov v rovnakej súťaži a sezóne.
+    Ak tím nemá žiadne predchádzajúce zápasy, vráti (np.nan, np.nan).
+    """
+    df2 = df.copy()
+    df2['date'] = pd.to_datetime(df2['date'], dayfirst=True, errors='coerce')
+
+    m0 = df2[df2['game_id'] == game_id]
+    if m0.empty:
+        return np.nan, np.nan
+    m0 = m0.iloc[0]
+    date0 = m0['date']
+    comp, season = m0['competition_id'], m0['season']
+    home_id, away_id = m0['home_club_id'], m0['away_club_id']
+
+    past = df2[(df2['competition_id'] == comp) &
+               (df2['season'] == season) &
+               (df2['date'] < date0)]
+
+    def avg_scored(team_id):
+        sub = past[(past['home_club_id'] == team_id) | (past['away_club_id'] == team_id)]
+        sub = sub.sort_values('date', ascending=False).head(form_n)
+        if sub.empty:
+            return np.nan
+        scored = sub.apply(lambda r: (r['home_club_goals'] if r['home_club_id'] == team_id else r['away_club_goals']), axis=1)
+        return scored.mean()
+
+    home_avg = avg_scored(home_id)
+    away_avg = avg_scored(away_id)
+    return home_avg, away_avg
+
+
+def get_average_goals_conceded(df: pd.DataFrame, game_id: str, form_n: int = 5) -> tuple[float, float]:
+    """
+    Pre dané game_id vráti (home_avg_conceded, away_avg_conceded), kde každá hodnota je
+    priemerný počet inkasovaných gólov na zápas z posledných form_n zápasov v rovnakej súťaži a sezóne.
+    Ak tím nemá žiadne predchádzajúce zápasy, vráti (np.nan, np.nan).
+    """
+    df2 = df.copy()
+    df2['date'] = pd.to_datetime(df2['date'], dayfirst=True, errors='coerce')
+
+    m0 = df2[df2['game_id'] == game_id]
+    if m0.empty:
+        return np.nan, np.nan
+    m0 = m0.iloc[0]
+    date0 = m0['date']
+    comp, season = m0['competition_id'], m0['season']
+    home_id, away_id = m0['home_club_id'], m0['away_club_id']
+
+    past = df2[(df2['competition_id'] == comp) &
+               (df2['season'] == season) &
+               (df2['date'] < date0)]
+
+    def avg_conceded(team_id):
+        sub = past[(past['home_club_id'] == team_id) | (past['away_club_id'] == team_id)]
+        sub = sub.sort_values('date', ascending=False).head(form_n)
+        if sub.empty:
+            return np.nan
+        conceded = sub.apply(lambda r: (r['away_club_goals'] if r['home_club_id'] == team_id else r['home_club_goals']), axis=1)
+        return conceded.mean()
+
+    home_avg_con = avg_conceded(home_id)
+    away_avg_con = avg_conceded(away_id)
+    return home_avg_con, away_avg_con
+
+def get_mutual_goal_difference(df: pd.DataFrame, game_id: str) -> tuple[float, float]:
+    """
+    Pre dané game_id vráti (home_goal_diff, away_goal_diff), kde hodnota je
+    (goals_for - goals_against) v predchádzajúcich vzájomných zápasoch
+    v rovnakej súťaži a sezóne. Ak neexistujú mutual zápasy, vráti (np.nan, np.nan).
+    """
+    df2 = df.copy()
+    for col in ['home_club_goals', 'away_club_goals', 'home_club_id', 'away_club_id']:
+        df2[col] = pd.to_numeric(df2[col], errors='coerce')
+    df2['date'] = pd.to_datetime(df2['date'], dayfirst=True, errors='coerce')
+    m0 = df2[df2['game_id'] == game_id]
+    if m0.empty:
+        return np.nan, np.nan
+    m0 = m0.iloc[0]
+    comp, season, date0 = m0['competition_id'], m0['season'], m0['date']
+    home_id, away_id = m0['home_club_id'], m0['away_club_id']
+    past = df2[(df2['competition_id'] == comp) &
+               (df2['season'] == season) &
+               (df2['date'] < date0)]
+    mutual = past[((past['home_club_id'] == home_id) & (past['away_club_id'] == away_id)) |
+                  ((past['home_club_id'] == away_id) & (past['away_club_id'] == home_id))]
+    if mutual.empty:
+        return np.nan, np.nan
+    home_for = ((mutual['home_club_id'] == home_id) * mutual['home_club_goals'] +
+                (mutual['away_club_id'] == home_id) * mutual['away_club_goals']).sum()
+    home_against = ((mutual['home_club_id'] == home_id) * mutual['away_club_goals'] +
+                    (mutual['away_club_id'] == home_id) * mutual['home_club_goals']).sum()
+    away_for = ((mutual['home_club_id'] == away_id) * mutual['home_club_goals'] +
+                (mutual['away_club_id'] == away_id) * mutual['away_club_goals']).sum()
+    away_against = ((mutual['home_club_id'] == away_id) * mutual['away_club_goals'] +
+                    (mutual['away_club_id'] == away_id) * mutual['home_club_goals']).sum()
+    home_diff = home_for - home_against
+    away_diff = away_for - away_against
+    return home_diff, away_diff
+
+def get_current_league_points(df: pd.DataFrame, game_id: str) -> tuple[int, int]:
+    """
+    Pre dané game_id vráti (home_raw_points, away_raw_points), kde každá hodnota je
+    súčet bodov (výhra=3, remíza=1, prehra=0) získaných domacim resp. hosťujúcim tímom
+    vo všetkých predchádzajúcich zápasoch v rovnakej súťaži a sezóne.
+    Ak tím nemá žiadne predchádzajúce zápasy, vráti (0, 0).
+    """
+    df2 = df.copy()
+    df2['date'] = pd.to_datetime(df2['date'], dayfirst=True, errors='coerce')
+
+    m0 = df2[df2['game_id'] == game_id]
+    if m0.empty:
+        return 0, 0
+    m0 = m0.iloc[0]
+    date0 = m0['date']
+    comp, season = m0['competition_id'], m0['season']
+    home_id, away_id = m0['home_club_id'], m0['away_club_id']
+
+    past = df2[(df2['competition_id'] == comp) &
+               (df2['season'] == season) &
+               (df2['date'] < date0)]
+    def raw_points(team_id):
+        sub = past[(past['home_club_id'] == team_id) | (past['away_club_id'] == team_id)]
+        if sub.empty:
+            return 0
+        pts = 0
+        for _, r in sub.iterrows():
+            gf = r['home_club_goals'] if r['home_club_id'] == team_id else r['away_club_goals']
+            ga = r['away_club_goals'] if r['home_club_id'] == team_id else r['home_club_goals']
+            if pd.isna(gf) or pd.isna(ga):
+                continue
+            if gf > ga:
+                pts += 3
+            elif gf == ga:
+                pts += 1
+        return pts
+
+    return raw_points(home_id), raw_points(away_id)
+
+
+def get_goal_difference_momentum(df: pd.DataFrame, game_id: str, form_n: int = 5) -> tuple[float, float]:
+    """
+    Pre dané game_id vráti (home_goal_diff_mom, away_goal_diff_mom), kde každá hodnota je
+    priemerný rozdiel gólov (goals_for - goals_against) za posledných form_n zápasov
+    v rovnakej súťaži a sezóne. Ak tím nemá žiadne predchádzajúce zápasy, vráti np.nan.
+    """
+    df2 = df.copy()
+    df2['date'] = pd.to_datetime(df2['date'], dayfirst=True, errors='coerce')
+
+    m0 = df2[df2['game_id'] == game_id]
+    if m0.empty:
+        return np.nan, np.nan
+    m0 = m0.iloc[0]
+    date0 = m0['date']
+    comp, season = m0['competition_id'], m0['season']
+    home_id, away_id = m0['home_club_id'], m0['away_club_id']
+
+    past = df2[(df2['competition_id'] == comp) &
+               (df2['season'] == season) &
+               (df2['date'] < date0)]
+
+    def momentum(team_id):
+        sub = past[(past['home_club_id'] == team_id) | (past['away_club_id'] == team_id)]
+        sub = sub.sort_values('date', ascending=False).head(form_n)
+        if sub.empty:
+            return np.nan
+        diffs = sub.apply(lambda r: (r['home_club_goals'] - r['away_club_goals']) if r['home_club_id'] == team_id \
+                                         else (r['away_club_goals'] - r['home_club_goals']), axis=1)
+        return diffs.sum() / len(diffs)
+
+    return momentum(home_id), momentum(away_id)
+
+def get_clean_sheet_rate(df: pd.DataFrame, game_id: str, form_n: int = 5) -> tuple[float, float]:
+    """
+    Pre dané game_id vráti (home_clean_sheet_rate, away_clean_sheet_rate), kde každá hodnota je
+    pomer zápasov v posledných form_n zápasoch, v ktorých tím inkasoval 0 gólov,
+    v rovnakej súťaži a sezóne. Ak tím nemá žiadne predchádzajúce zápasy, vráti np.nan.
+    """
+    df2 = df.copy()
+    df2['date'] = pd.to_datetime(df2['date'], dayfirst=True, errors='coerce')
+
+    m0 = df2[df2['game_id'] == game_id]
+    if m0.empty:
+        return np.nan, np.nan
+    m0 = m0.iloc[0]
+    date0 = m0['date']
+    comp, season = m0['competition_id'], m0['season']
+    home_id, away_id = m0['home_club_id'], m0['away_club_id']
+
+    past = df2[(df2['competition_id'] == comp) &
+               (df2['season'] == season) &
+               (df2['date'] < date0)]
+
+    def clean_rate(team_id):
+        sub = past[(past['home_club_id'] == team_id) | (past['away_club_id'] == team_id)]
+        sub = sub.sort_values('date', ascending=False).head(form_n)
+        if sub.empty:
+            return np.nan
+        conceded = sub.apply(lambda r: r['away_club_goals'] if r['home_club_id'] == team_id else r['home_club_goals'], axis=1)
+        clean = (conceded == 0).sum()
+        return clean / len(conceded)
+
+    return clean_rate(home_id), clean_rate(away_id)

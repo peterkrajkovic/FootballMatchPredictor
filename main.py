@@ -15,6 +15,7 @@ import fbrefdata as fd
 import training
 import utils
 
+
 df_fifa = pd.read_csv("Data/fifa_players.csv")
 df_lineups = pd.read_csv('Data/game_lineups.csv')
 #transfermarkt
@@ -22,6 +23,8 @@ df_matches = pd.read_csv("Data/games.csv")
 df_players = pd.read_csv("Data/players.csv")
 df_teams   = pd.read_csv("Data/clubs.csv")
 df_competitions = pd.read_csv("Data/competitions.csv")
+
+
 
 config = utils.loadConfig()
 if (config["show_graphs"]):
