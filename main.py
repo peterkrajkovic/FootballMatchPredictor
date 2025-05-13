@@ -6,6 +6,7 @@ import graphs
 import gui
 import Model.training as training
 import utils
+import dataPreloader;
 
 #datasets
 df_fifa = pd.read_csv("Data/fifa_players.csv")
@@ -22,8 +23,14 @@ if (config["show_graphs"]):
     graphs.ratingToAge(df_fifa)
     graphs.avgRatingByNationality(df_fifa)
 
+if (config["preload_data"]):
+    dataset = dataPreloader.createDataset(df_fifa, df_lineups, df_matches, df_players)
+    dataset.to_csv("Data/dataset.csv", index=False)
+    print("Creating and saving dataset.csv ")
+
 if (config["is_training"]):
-    training.trainModel(config,df_fifa, df_lineups, df_matches, df_players, df_teams, df_competitions)
+    dataset = pd.read_csv("Data/dataset.csv")
+    training.trainModel(config, dataset)
 
 if (config["is_gui"]):
     gui.loadGUI(df_teams, df_competitions, df_players, None)
