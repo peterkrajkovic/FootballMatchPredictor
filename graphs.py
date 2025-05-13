@@ -41,3 +41,29 @@ def avgRatingByNationality(df_fifa_csv: DataFrame, top_n: int = 10):
     plt.ylabel("Nationality")
     plt.title(f"Top {top_n} Nationalities by Average Overall Rating")
     plt.show(block=True)
+
+def show_training_progress(epochs: int, train_losses, test_losses, train_accuracies, test_accuracies):
+    plt.figure(figsize=(14, 6))
+
+    # Plot Loss
+    plt.subplot(1, 2, 1)
+    plt.plot(epochs, train_losses, label='Train Loss')
+    plt.plot(epochs, test_losses, label='Validation Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title('Loss over Epochs')
+    plt.legend()
+    plt.grid(True)
+
+    # Plot Accuracy
+    plt.subplot(1, 2, 2)
+    plt.plot(epochs, train_accuracies, label='Train Accuracy')
+    plt.plot(epochs, test_accuracies, label='Validation Accuracy')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.title('Accuracy over Epochs')
+    plt.legend()
+    plt.grid(True)
+
+    plt.tight_layout()
+    plt.show(block=True)

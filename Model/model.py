@@ -44,6 +44,8 @@ class MatchPredictorFCNN(nn.Module):
 def train_model(model, train_loader, loss_fn, optimizer):
     model.train()
     losses = []
+    accuracy = 0
+    total_samples = 0
 
     for features, labels in train_loader:
         features = features.to('cuda')
@@ -54,10 +56,12 @@ def train_model(model, train_loader, loss_fn, optimizer):
         loss = loss_fn(output, labels)
         loss.backward()
         optimizer.step()
-
+        _, preds = output.max(1)
+        accuracy += (preds == labels).sum().item()
+        total_samples += labels.size(0)
         losses.append(loss.item())
 
-    return np.mean(losses)
+    return np.mean(losses), accuracy / total_samples
     
 def evaluate_model(model, val_loader, loss_fn):
     model.eval()
