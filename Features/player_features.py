@@ -14,8 +14,10 @@ def get_players_evaluation_df(df_players, df_fifa):
     """
 
     # Merge the DataFrames
-    merged_players_fifa_df = pd.merge(df_players, df_fifa, left_on='name', right_on='full_name', how='left')
-
+    df_players['date_of_birth'] = pd.to_datetime(df_players['date_of_birth'], format='%Y-%m-%d %H:%M:%S')
+    df_fifa['birth_date'] = pd.to_datetime(df_fifa['birth_date'])
+    df_fifa['last_name'] = df_fifa['name'].str.split().str[-1]
+    merged_players_fifa_df = pd.merge(df_players, df_fifa, left_on=['last_name', 'date_of_birth'], right_on=['last_name', 'birth_date'], how='inner')
     # Select relevant columns
     selected_columns = ['player_id', 'position', 'full_name', 'current_club_id', 'overall_rating', 'potential', 'value_euro', 'game_team_id', 'market_value_in_eur']
     players_evaluation_df = merged_players_fifa_df[selected_columns].copy()
