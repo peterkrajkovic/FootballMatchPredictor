@@ -37,8 +37,6 @@ def get_team_points(df: pd.DataFrame, game_id: str) -> tuple[float, float]:
     """
     Return normalized total points for home and away teams before the given game.
     """
-    df = df.copy()
-    df['date'] = pd.to_datetime(df['date'], dayfirst=True, errors='coerce')
 
     match = df.loc[df['game_id'] == game_id].iloc[0]
     comp, season, date0, home, away = match['competition_id'], match['season'], match['date'], match['home_club_id'], match['away_club_id']

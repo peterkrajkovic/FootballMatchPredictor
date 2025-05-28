@@ -100,8 +100,7 @@ def trainModel(config : dict,
                 label = 2
 
             labels.extend([label] * 1)  # One label for each row of features
-        if (i > 100):
-            break
+       
 
     
     print(features.head())
@@ -135,7 +134,7 @@ def trainModel(config : dict,
     optimizer = optim.Adam(model.parameters(), lr=config["learning_rate"])
 
     # Check if GPU is available
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cpu' if torch.cpu.is_available() else 'cpu')
     model.to(device)
 
     bestAccuracy = config["best_accuracy"]
