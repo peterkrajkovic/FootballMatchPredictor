@@ -3,8 +3,9 @@
     "learning_rate": 0.01,
     "batch_size": 64,
     "model_path": "Model/model_weights.pth",
-    "is_training": false,
+    "is_training": true,
     "is_gui": false,
-    "show_graphs": true,
-    "best_accuracy": 0.543859649122807
+    "show_graphs": false,
+    "best_accuracy": 0.5648535564853556,
+    "preload_data": true
 }

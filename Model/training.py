@@ -12,32 +12,22 @@ from torch.utils.data import DataLoader, TensorDataset
 from graphs import show_training_progress
 
 def trainModel(config : dict,  
-                df_fifa: pd.DataFrame,
-                df_lineups: pd.DataFrame,
-                df_matches: pd.DataFrame,
-                df_players: pd.DataFrame,
-                df_teams: pd.DataFrame,
-                df_competitions: pd.DataFrame):
+                dataset: pd.DataFrame):
    
     features = pd.DataFrame()
     labels = []
-    # Filter only Premier League matches (assuming "GB1" is the ID for that)
-    df_matches["date"] = pd.to_datetime(df_matches["date"], dayfirst=True, errors='coerce')
-    df_matches = df_matches[
-        (df_matches["competition_id"] == "GB1") & 
-        (df_matches["date"] > "2015-10-28")
-    ]
 
-    for i, (_, game) in enumerate(df_matches.iterrows()):
-        game_id = game["game_id"]
-        frame = get_dataframe_game_id(game["game_id"], df_matches, df_players, df_fifa, df_lineups)
+    for i, (_, game) in enumerate(dataset.iterrows()):
+    
+        if game is not None and not game.empty:
+         
+            home_goals = game['home_goals']
+            away_goals = game['away_goals']
 
-        if frame is not None and not frame.empty:
-            num_rows = len(frame)
-            features = pd.concat([features, frame], ignore_index=True)
+            game.drop(columns=['home_goals', 'away_goals'], inplace=True)
 
-            home_goals = game['home_club_goals']
-            away_goals = game['away_club_goals']
+            num_rows = len(game)
+            features = pd.concat([features, game], ignore_index=True)
             """try:
                 home_points, away_points = get_team_points(df_matches, game_id)
                 home_form, away_form = get_form_points(df_matches, game_id, form_n=10)
