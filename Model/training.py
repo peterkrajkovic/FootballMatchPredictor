@@ -1,7 +1,5 @@
 import pandas as pd
-from Features.match_features import get_dataframe_game_id
 from sklearn.preprocessing import StandardScaler
-from Features.team_features import get_average_goals_conceded, get_average_goals_scored, get_clean_sheet_rate, get_current_league_points, get_days_rest, get_form_points, get_goal_difference_momentum, get_mutual_goal_difference, get_mutual_statistic, get_result_rate, get_team_points
 from Model.model import MatchPredictorFCNN, evaluate_model, train_model
 import torch
 import torch.nn as nn
@@ -21,13 +19,26 @@ def trainModel(config : dict,
     
         if game is not None and not game.empty:
          
-            home_goals = game['home_goals']
-            away_goals = game['away_goals']
+            home_goals = game.home_goals
+            away_goals = game.away_goals
 
-            game.drop(columns=['home_goals', 'away_goals'], inplace=True)
+            game.drop(columns=["home_goals", "away_goals"], inplace=True)
 
-            num_rows = len(game)
-            features = pd.concat([features, game], ignore_index=True)
+            #num_rows = len(game)
+            player_columns = [
+                "team1_defender_overall_rating", "team1_defender_potential", "team1_defender_market_value_in_eur",
+                "team1_goalkeeper_overall_rating", "team1_goalkeeper_potential", "team1_goalkeeper_market_value_in_eur",
+                "team1_attack_overall_rating", "team1_attack_potential", "team1_attack_market_value_in_eur",
+                "team1_midfield_overall_rating", "team1_midfield_potential", "team1_midfield_market_value_in_eur",
+                "team2_defender_overall_rating", "team2_defender_potential", "team2_defender_market_value_in_eur",
+                "team2_goalkeeper_overall_rating", "team2_goalkeeper_potential", "team2_goalkeeper_market_value_in_eur",
+                "team2_attack_overall_rating", "team2_attack_potential", "team2_attack_market_value_in_eur",
+                "team2_midfield_overall_rating", "team2_midfield_potential", "team2_midfield_market_value_in_eur"
+            ]
+
+            df_players_only = game[player_columns].to_frame().T
+            features = pd.concat([features, df_players_only], ignore_index=True)
+            #features = pd.concat([features, game], ignore_index=True)
             """try:
                 home_points, away_points = get_team_points(df_matches, game_id)
                 home_form, away_form = get_form_points(df_matches, game_id, form_n=10)
@@ -88,17 +99,26 @@ def trainModel(config : dict,
             else:
                 label = 2
 
-            labels.extend([label] * num_rows)  # One label for each row of features
-
-        if i > 1000:
+            labels.extend([label] * 1)  # One label for each row of features
+        if (i > 100):
             break
+
     
-    print("Number of features:", features.shape[1])
+    print(features.head())
+    """print("Number of features:", features.shape[1])
     print("All feature columns:")
     print(features.columns.tolist())
+    features.to_csv('Data/raw_features.csv',index=False,sep=';')
+    features = features.fillna(0)
+    features.to_csv('Data/filled_nan_features.csv', index=False,sep=';')
+    scaler = StandardScaler()
+    features = scaler.fit_transform(features)
+    df = pd.DataFrame(features)
+    df.to_csv("Data/scaled_features.csv", index=False,sep=';')"""
     features = features.fillna(0)
     scaler = StandardScaler()
     features = scaler.fit_transform(features)
+    df = pd.DataFrame(features)
 
     # Create DataLoader for training and validation sets
     dataset = TensorDataset(torch.tensor(features, dtype=torch.float32), 
