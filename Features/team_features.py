@@ -65,9 +65,6 @@ def get_form_points(
     """
     Return normalized points in the last 'form_n' matches for both teams before the game.
     """
-    df = df.copy()
-    df['date'] = pd.to_datetime(df['date'], dayfirst=True, errors='coerce')
-
     match = df.loc[df['game_id'] == game_id].iloc[0]
     return get_form_points_by_team(
         comp=match['competition_id'],
@@ -79,29 +76,28 @@ def get_form_points(
         form_n=form_n
     )
 
-def get_form_points_by_team(
-    comp: int,
-    season: int,
-    date: pd.Timestamp,
-    df_matches: pd.DataFrame,
-    home_id: int,
-    away_id: int,
-    form_n: int
-) -> tuple[float, float]:
+def get_form_points_by_team(comp: int, season: int, date: pd.Timestamp, df_matches: pd.DataFrame, home_id: int, away_id: int, form_n: int) -> tuple[float, float]:
     """
     Compute normalized form for both teams in the 'form_n' matches before the given date.
     """
+    # Filter past matches once
     past = df_matches[(df_matches['competition_id'] == comp) & (df_matches['season'] == season) & (df_matches['date'] < date)]
 
     def get_normalized_form(team_id: int) -> float:
+        # Get last form_n matches for the team
         sub = past[(past['home_club_id'] == team_id) | (past['away_club_id'] == team_id)].sort_values('date', ascending=False).head(form_n)
-        pts = sum(
-            3 if (r['home_club_id'] == team_id and r['home_club_goals'] > r['away_club_goals']) or
-                 (r['away_club_id'] == team_id and r['away_club_goals'] > r['home_club_goals'])
-            else 1 if (r['home_club_goals'] == r['away_club_goals']) else 0
-            for _, r in sub.iterrows()
-        )
-        return pts / (3 * len(sub)) if len(sub) > 0 else 0.0
+        if sub.empty:
+            return 0.0
+
+        # Vectorized point calculation
+        conditions = [
+            (sub['home_club_id'] == team_id) & (sub['home_club_goals'] > sub['away_club_goals']),
+            (sub['away_club_id'] == team_id) & (sub['away_club_goals'] > sub['home_club_goals']),
+            (sub['home_club_goals'] == sub['away_club_goals'])
+        ]
+        choices = [3, 3, 1]
+        points = np.select(conditions, choices, default=0).sum()
+        return points / (3 * len(sub)) if len(sub) > 0 else 0.0
 
     return get_normalized_form(home_id), get_normalized_form(away_id)
 
@@ -112,8 +108,6 @@ def get_result_rate(
     """
     Return historical win/draw rates for both home and away teams.
     """
-    df = df.copy()
-    df['date'] = pd.to_datetime(df['date'], dayfirst=True, errors='coerce')
 
     match = df.loc[df['game_id'] == game_id].iloc[0]
     return get_result_rate_by_team(
@@ -125,29 +119,26 @@ def get_result_rate(
         away_id=match['away_club_id']
     )
 
-def get_result_rate_by_team(
-    df: pd.DataFrame,
-    comp: int,
-    season: int,
-    date: pd.Timestamp,
-    home_id: int,
-    away_id: int
-) -> tuple[float, float, float, float]:
+def get_result_rate_by_team(df: pd.DataFrame, comp: int, season: int, date: pd.Timestamp, home_id: int, away_id: int) -> tuple[float, float, float, float]:
     """
     Return win/draw rates for home and away teams based on past matches.
     """
+    # Filter past matches once
     past = df[(df['competition_id'] == comp) & (df['season'] == season) & (df['date'] < date)]
 
     def rate(sub: pd.DataFrame, goals_col: str, opp_goals_col: str) -> tuple[float, float]:
         total = len(sub)
+        if total == 0:
+            return 0.0, 0.0
         wins = (sub[goals_col] > sub[opp_goals_col]).sum()
         draws = (sub[goals_col] == sub[opp_goals_col]).sum()
-        return wins / total if total else 0.0, draws / total if total else 0.0
+        return wins / total, draws / total
 
-    home_wins, home_draws = rate(past[past['home_club_id'] == home_id], 'home_club_goals', 'away_club_goals')
-    away_wins, away_draws = rate(past[past['away_club_id'] == away_id], 'away_club_goals', 'home_club_goals')
+    home_sub = past[past['home_club_id'] == home_id]
+    away_sub = past[past['away_club_id'] == away_id]
+    home_wins, home_draws = rate(home_sub, 'home_club_goals', 'away_club_goals')
+    away_wins, away_draws = rate(away_sub, 'away_club_goals', 'home_club_goals')
     return home_wins, home_draws, away_wins, away_draws
-
 
 
 #momentalne nefunguje

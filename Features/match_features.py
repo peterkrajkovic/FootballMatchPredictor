@@ -38,15 +38,17 @@ def get_dataframe_game_id(
 ) -> pd.DataFrame:
     """
     Create a feature dataframe using just the game ID and main dataframes.
+    vrati iba pre zapasy kt. maju aspon nejakych fifa hracov
     """
     frame = evaluate_two_teams_by_game_id(game_id, df_matches, df_players, df_fifa, df_lineups)
-    """  home_form, away_form = get_form_points(df_matches, game_id)
-    home_win_rate, home_draw_rate, away_win_rate, away_draw_rate = get_result_rate(df_matches, game_id)
+    if frame is not None or not frame.empty:
+        home_form, away_form = get_form_points(df_matches, game_id)
+        home_win_rate, home_draw_rate, away_win_rate, away_draw_rate = get_result_rate(df_matches, game_id)
 
-    frame['home_form'] = [home_form]
-    frame['away_form'] = [away_form]
-    frame['home_win_rate'] = [home_win_rate]
-    frame['home_draw_rate'] = [home_draw_rate]
-    frame['away_win_rate'] = [away_win_rate]
-    frame['away_draw_rate'] = [away_draw_rate] """
+        frame['home_form'] = [home_form]
+        frame['away_form'] = [away_form]
+        frame['home_win_rate'] = [home_win_rate]
+        frame['home_draw_rate'] = [home_draw_rate]
+        frame['away_win_rate'] = [away_win_rate]
+        frame['away_draw_rate'] = [away_draw_rate]
     return frame
