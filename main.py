@@ -26,7 +26,7 @@ if (config["show_graphs"]):
 
 if (config["preload_data"]):
     dataset = dataPreloader.createDataset(df_fifa, df_lineups, df_matches, df_players)
-    dataset.to_csv("Data/dataset.csv", index=False)
+    dataset.to_csv("Data/dataset_ultra_large.csv", index=False)
     print("Creating and saving dataset.csv ")
 
 if (config["is_training"]):
