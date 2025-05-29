@@ -23,7 +23,6 @@ def createDataset(df_fifa: pd.DataFrame,
             frame['away_goals'] = game['away_club_goals']
             frame['competition_id'] = game['competition_id']
             home_points, away_points = Features.team_features.get_team_points(df_matches, game_id)
-            h_wr, h_dr, a_wr, a_dr = Features.team_features.get_result_rate(df_matches, game_id)
             h2h_home, h2h_away = Features.team_features.get_mutual_statistic(df_matches, game_id)
             home_rest_days, away_rest_days = Features.team_features.get_days_rest(df_matches, game_id)
             home_scored, away_scored = Features.team_features.get_average_goals_scored(df_matches, game_id)
@@ -35,7 +34,6 @@ def createDataset(df_fifa: pd.DataFrame,
 
             feature_row = [
                 home_points, away_points,
-                h_wr, h_dr, a_wr, a_dr,
                 h2h_home, h2h_away,
                 home_rest_days, away_rest_days,
                 home_scored, away_scored,
@@ -48,7 +46,6 @@ def createDataset(df_fifa: pd.DataFrame,
 
             extra_columns = [
                 'home_points', 'away_points',
-                'h_wr', 'h_dr', 'a_wr', 'a_dr',
                 'h2h_home', 'h2h_away',
                 'home_rest_days', 'away_rest_days',
                 'home_scored', 'away_scored',
