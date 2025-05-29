@@ -17,6 +17,7 @@ def createDataset(df_fifa: pd.DataFrame,
             game_id = game["game_id"]
             frame['home_goals'] = game['home_club_goals']
             frame['away_goals'] = game['away_club_goals']
+            frame['competition_id'] = game['competition_id']
             home_points, away_points = Features.team_features.get_team_points(df_matches, game_id)
             home_form, away_form = Features.team_features.get_form_points(df_matches, game_id, form_n=10)
             h_wr, h_dr, a_wr, a_dr = Features.team_features.get_result_rate(df_matches, game_id)
@@ -64,7 +65,9 @@ def createDataset(df_fifa: pd.DataFrame,
             combined = pd.concat([frame.reset_index(drop=True), extra_df], axis=1)
 
             frames.append(combined)
-            i += 1
+            break
+            i += 75000
+            #print(frames.columns.to_list())
 
 
             print(i, " - ", game["game_id"])
@@ -72,4 +75,5 @@ def createDataset(df_fifa: pd.DataFrame,
 
 
     datset = pd.concat(frames, ignore_index=True)
+    print(datset.columns.to_list())
     return datset
