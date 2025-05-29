@@ -1,11 +1,11 @@
 {
-    "number_of_epochs": 1000,
+    "number_of_epochs": 100,
     "learning_rate": 0.01,
     "batch_size": 64,
     "model_path": "Model/model_weights.pth",
     "is_training": true,
     "is_gui": false,
     "show_graphs": false,
-    "best_accuracy": 0.5648535564853556,
-    "preload_data": true
+    "best_accuracy": 1.0,
+    "preload_data": false
 }

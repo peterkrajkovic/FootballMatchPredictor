@@ -6,7 +6,7 @@ import graphs
 import gui
 import Model.training as training
 import utils
-import dataPreloader;
+import dataPreloader
 
 #datasets
 df_fifa = pd.read_csv("Data/fifa_players.csv")
@@ -16,6 +16,7 @@ df_matches = pd.read_csv("Data/games.csv")
 df_players = pd.read_csv("Data/players.csv")
 df_teams   = pd.read_csv("Data/clubs.csv")
 df_competitions = pd.read_csv("Data/competitions.csv")
+
 
 config = utils.loadConfig()
 if (config["show_graphs"]):
@@ -29,8 +30,14 @@ if (config["preload_data"]):
     print("Creating and saving dataset.csv ")
 
 if (config["is_training"]):
-    dataset = pd.read_csv("Data/dataset.csv")
-    training.trainModel(config, dataset)
+    # dataset = pd.read_csv("Data/dataset_large.csv")
+    # training.prepareModel(config, dataset)
+
+    with open('Data/labels_all.txt', 'r') as f:
+        labels = [float(line.strip()) for line in f]
+    features = pd.read_csv("Data/features_all.csv")
+    training.trainModel(config, features, labels)
+
 
 if (config["is_gui"]):
     gui.loadGUI(df_teams, df_competitions, df_players, None)
