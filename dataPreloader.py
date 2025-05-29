@@ -13,13 +13,16 @@ def createDataset(df_fifa: pd.DataFrame,
     i = 0
     for _, game in df_matches.iterrows():
         frame = Features.match_features.get_dataframe_game_id(game["game_id"], df_matches, df_players, df_fifa, df_lineups)
-        if frame is not None and not frame.empty:
+        first_24_cols = frame.columns[:24]
+            
+        has_valid_data = frame[first_24_cols].map(lambda x: pd.notna(x) and x != 0.0).any(axis=1).any()
+
+        if frame is not None and not frame.empty and has_valid_data:
             game_id = game["game_id"]
             frame['home_goals'] = game['home_club_goals']
             frame['away_goals'] = game['away_club_goals']
             frame['competition_id'] = game['competition_id']
             home_points, away_points = Features.team_features.get_team_points(df_matches, game_id)
-            home_form, away_form = Features.team_features.get_form_points(df_matches, game_id, form_n=10)
             h_wr, h_dr, a_wr, a_dr = Features.team_features.get_result_rate(df_matches, game_id)
             h2h_home, h2h_away = Features.team_features.get_mutual_statistic(df_matches, game_id)
             home_rest_days, away_rest_days = Features.team_features.get_days_rest(df_matches, game_id)
@@ -32,7 +35,6 @@ def createDataset(df_fifa: pd.DataFrame,
 
             feature_row = [
                 home_points, away_points,
-                home_form, away_form,
                 h_wr, h_dr, a_wr, a_dr,
                 h2h_home, h2h_away,
                 home_rest_days, away_rest_days,
@@ -46,7 +48,6 @@ def createDataset(df_fifa: pd.DataFrame,
 
             extra_columns = [
                 'home_points', 'away_points',
-                'home_form', 'away_form',
                 'h_wr', 'h_dr', 'a_wr', 'a_dr',
                 'h2h_home', 'h2h_away',
                 'home_rest_days', 'away_rest_days',
@@ -58,19 +59,15 @@ def createDataset(df_fifa: pd.DataFrame,
                 'home_clean_sheet', 'away_clean_sheet'
             ]
 
-                # 2. Create DataFrame from feature_row
-                extra_df = pd.DataFrame([feature_row], columns=extra_columns)
+            # 2. Create DataFrame from feature_row
+            extra_df = pd.DataFrame([feature_row], columns=extra_columns)
 
-                # 3. Concatenate horizontally with frame
-                combined = pd.concat([frame.reset_index(drop=True), extra_df], axis=1)
+            # 3. Concatenate horizontally with frame
+            combined = pd.concat([frame.reset_index(drop=True), extra_df], axis=1)
 
-                frames.append(combined)
-               # break
-                #print(frames.columns.to_list())
-
-
-                print(i, " - ", game["game_id"])
-                i += 1
+            frames.append(combined)
+            print(i, " - ", game["game_id"])
+            i += 1
 
 
 
