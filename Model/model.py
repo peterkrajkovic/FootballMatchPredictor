@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader, TensorDataset
 import numpy as np
 import fbrefdata as fd
 from sklearn.metrics import confusion_matrix
-
+import utils
 class MatchPredictorFCNN(nn.Module):
     def __init__(self, input_size, hidden_sizes=[128, 64, 32, 16], output_size=4):
         """
@@ -54,8 +54,8 @@ def train_model(model, train_loader, loss_fn, optimizer):
     total_samples = 0
 
     for features, labels in train_loader:
-        features = features.to('cpu')
-        labels = labels.to('cpu')
+        features = features.to(utils.selectGPU())
+        labels = labels.to(utils.selectGPU())
 
         optimizer.zero_grad()
         output = model(features)
@@ -100,8 +100,8 @@ def evaluate_model(model, val_loader, loss_fn):
 
     with torch.no_grad():
         for features, labels in val_loader:
-            features = features.to('cpu')
-            labels = labels.to('cpu')
+            features = features.to(utils.selectGPU())
+            labels = labels.to(utils.selectGPU())
 
             output = model(features)
             loss = loss_fn(output, labels)

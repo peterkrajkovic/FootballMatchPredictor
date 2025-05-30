@@ -1,7 +1,7 @@
 import json
 import torch
 from typing import Dict
-from Model.model import MatchPredictorFCNN  # Adjust import if needed
+# from Model.model import MatchPredictorFCNN  # Adjust import if needed
 
 def loadConfig(path: str = "config.json") -> Dict:
     """Loads configuration values from a JSON file."""
@@ -16,11 +16,20 @@ def save_config(config: dict):
     except Exception as e:
         print(f"Failed to save config: {e}")
 
-def loadModel(config: Dict) -> MatchPredictorFCNN:
-    """Initializes and loads a trained model from weights."""
-    model = MatchPredictorFCNN(input_size=config["input_size"])
-    model.load_state_dict(torch.load(config["model_path"], map_location='cpu'))
-    model.eval()
-    return model
+# def loadModel(config: Dict) -> MatchPredictorFCNN:
+#     """Initializes and loads a trained model from weights."""
+#     model = MatchPredictorFCNN(input_size=config["input_size"])
+#     model.load_state_dict(torch.load(config["model_path"], map_location='cpu'))
+#     model.eval()
+#     return model
 
 
+def selectGPU():
+    """Selects GPU if available, otherwise uses CPU."""
+    if( torch.cuda.is_available() ):
+        device = torch.device('cuda')
+    elif( torch.backends.mps.is_available() ):
+        device = torch.device('mps')#mac
+    else:
+        device = torch.device('cpu')
+    return device

@@ -10,6 +10,8 @@ from torch.utils.data import DataLoader, TensorDataset
 from graphs import show_training_progress
 import numpy as np
 
+import utils
+
 
 def prepareModel(config: dict,
                dataset: pd.DataFrame):
@@ -182,7 +184,7 @@ def trainModel(config: dict, features: pd.DataFrame, labels: list[float]):
 
 
     # Check if GPU is available
-    device = torch.device('cpu' if torch.cpu.is_available() else 'cpu')
+    device = torch.device(utils.selectGPU())
     model.to(device)
 
     bestAccuracy = config["best_accuracy"]
