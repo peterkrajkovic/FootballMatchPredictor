@@ -14,95 +14,48 @@ from graphs import show_training_progress
 def trainModel(config : dict,  
                 dataset: pd.DataFrame):
    
-    features = pd.DataFrame()
+    features = []
     labels = []
 
     for i, (_, game) in enumerate(dataset.iterrows()):
-    
         if game is not None and not game.empty:
-         
             home_goals = game['home_goals']
             away_goals = game['away_goals']
 
-            game.drop(columns=['home_goals', 'away_goals'], inplace=True)
+            game = game.drop(labels=['home_goals', 'away_goals'])
 
-            num_rows = len(game)
-            features = pd.concat([features, game], ignore_index=True)
-            """try:
-                home_points, away_points = get_team_points(df_matches, game_id)
-                home_form, away_form = get_form_points(df_matches, game_id, form_n=10)
-                h_wr, h_dr, a_wr, a_dr = get_result_rate(df_matches, game_id)
-                h2h_home, h2h_away = get_mutual_statistic(df_matches, game_id)
-                home_rest_days, away_rest_days = get_days_rest(df_matches, game_id)
-                home_scored, away_scored = get_average_goals_scored(df_matches, game_id)
-                home_conceded, away_conceded = get_average_goals_conceded(df_matches, game_id)
-                home_diff, away_diff = get_mutual_goal_difference(df_matches, game_id)
-                home_raw_points, away_raw_points = get_current_league_points(df_matches, game_id)
-                home_momentum, away_momentum = get_goal_difference_momentum(df_matches, game_id)
-                home_clean_sheet, away_clean_sheet = get_clean_sheet_rate(df_matches, game_id)
-            except Exception as e:
-                print(f"Chyba pri spracovaní zápasu {game_id}: {e}")
-                continue
-
-            feature_row = [
-                home_points, away_points,
-                home_form, away_form,
-                h_wr, h_dr, a_wr, a_dr,
-                h2h_home, h2h_away,
-                home_rest_days, away_rest_days,
-                home_scored, away_scored,
-                home_conceded, away_conceded,
-                home_diff, away_diff,
-                home_raw_points, away_raw_points,
-                home_momentum, away_momentum,
-                home_clean_sheet, away_clean_sheet
-            ]
-
-            extra_columns = [
-                'home_points', 'away_points',
-                'home_form', 'away_form',
-                'h_wr', 'h_dr', 'a_wr', 'a_dr',
-                'h2h_home', 'h2h_away',
-                'home_rest_days', 'away_rest_days',
-                'home_scored', 'away_scored',
-                'home_conceded', 'away_conceded',
-                'home_diff', 'away_diff',
-                'home_raw_points', 'away_raw_points',
-                'home_momentum', 'away_momentum',
-                'home_clean_sheet', 'away_clean_sheet'
-            ]
-
-            # 2. Create DataFrame from feature_row
-            extra_df = pd.DataFrame([feature_row], columns=extra_columns)
-
-            # 3. Concatenate horizontally with frame
-            combined = pd.concat([frame.reset_index(drop=True), extra_df], axis=1)
-
-            # 4. Add to features
-            features = pd.concat([features, combined], ignore_index=True)
-            """
             if home_goals > away_goals:
-                  label = 0
+                label = 0
             elif home_goals == away_goals:
                 label = 1
             else:
                 label = 2
 
-            labels.extend([label] * num_rows)  # One label for each row of features
+            features.append(game.values)  # Save the row (as a list of values)
+            labels.append(label)
 
         if i > 1000:
             break
+
+    # Convert to proper DataFrame and Series
+    features_df = pd.DataFrame(features, columns=dataset.drop(columns=['home_goals', 'away_goals']).columns)
+    labels_series = pd.Series(labels)
     
-    print("Number of features:", features.shape[1])
+    print("Number of features:", features_df.shape[1])
     print("All feature columns:")
-    print(features.columns.tolist())
-    features = features.fillna(0)
+    print(features_df.columns.tolist())
+    features_df = features_df.fillna(0)
     scaler = StandardScaler()
     features = scaler.fit_transform(features)
 
     # Create DataLoader for training and validation sets
-    dataset = TensorDataset(torch.tensor(features, dtype=torch.float32), 
-                       torch.tensor(labels, dtype=torch.long))    
+    features_tensor = torch.tensor(features_df.values, dtype=torch.float32)
+    labels_tensor = torch.tensor(labels_series.values, dtype=torch.long)
+
+    # Wrap into a TensorDataset
+    dataset = TensorDataset(features_tensor, labels_tensor)
+
+    # Split into train and validation sets
     train_size = int(0.8 * len(dataset))
     val_size = len(dataset) - train_size
     train_dataset, val_dataset = torch.utils.data.random_split(dataset, [train_size, val_size])

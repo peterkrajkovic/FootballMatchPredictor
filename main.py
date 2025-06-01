@@ -29,7 +29,7 @@ if (config["preload_data"]):
     print("Creating and saving dataset.csv ")
 
 if (config["is_training"]):
-    dataset = pd.read_csv("Data/dataset.csv")
+    dataset = pd.read_csv("Data/dataset.csv",sep=",")
     training.trainModel(config, dataset)
 
 if (config["is_gui"]):
