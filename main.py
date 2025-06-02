@@ -53,6 +53,12 @@ if (config["is_training"]):
         labels = [float(line.strip()) for line in f]
     features = pd.read_csv("Data/features_all_cID.csv")
 
+
+    # market_value_cols = [col for col in features.columns if 'market_value' in col]
+    # for col in market_value_cols:
+    #     if not features[col].apply(lambda x: x == np.log1p(x) if x > 0 else x == 0).all():
+    #         features[col] = features[col].apply(lambda x: np.log1p(x) if x > 0 else 0)
+
     features = features.drop('competition_id', axis=1)
 
     training.trainModel(config, features, labels)
