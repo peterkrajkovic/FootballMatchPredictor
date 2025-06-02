@@ -1,5 +1,6 @@
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
+from Model.EarlyStop import EarlyStopping
 from Model.model import MatchPredictorFCNN, evaluate_model, train_model
 import torch
 import torch.nn as nn
@@ -11,7 +12,6 @@ from graphs import show_training_progress
 import numpy as np
 
 import utils
-
 
 def prepareModel(config: dict,
                dataset: pd.DataFrame):
@@ -181,7 +181,7 @@ def trainModel(config: dict, features: pd.DataFrame, labels: list[float]):
     #optimizer = torch.optim.SGD(model.parameters(), lr=config["learning_rate"], momentum=0.9)
 
 
-
+    early_stopping = EarlyStopping(patience=15)
 
     # Check if GPU is available
     device = torch.device(utils.selectGPU())
@@ -208,6 +208,11 @@ def trainModel(config: dict, features: pd.DataFrame, labels: list[float]):
             torch.save(model.state_dict(), config["model_path"])
             config["best_accuracy"] = test_accuracy
             bestAccuracy = test_accuracy
+             # Early stopping
+
+        if early_stopping(test_loss):
+            print(f"Early stopping at epoch {epoch+1}")
+            break    
 
     print("best accuracy :")
     print(bestAccuracy)
