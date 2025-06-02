@@ -181,7 +181,7 @@ def trainModel(config: dict, features: pd.DataFrame, labels: list[float]):
     #optimizer = torch.optim.SGD(model.parameters(), lr=config["learning_rate"], momentum=0.9)
 
 
-    early_stopping = EarlyStopping(patience=15)
+    early_stopping = EarlyStopping(patience=5)
 
     # Check if GPU is available
     device = torch.device(utils.selectGPU())
